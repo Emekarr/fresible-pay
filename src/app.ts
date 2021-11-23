@@ -14,6 +14,13 @@ class App {
 		this.express.use('/howfar', (req: Request, res: Response) => {
 			new ServerResponse('i dey boss').respond(res);
 		});
+
+		this.express.use('*', (req: Request, res: Response) => {
+			new ServerResponse(`the route ${req.originalUrl} does not exist.`)
+				.success(false)
+				.statusCode(404)
+				.respond(res);
+		});
 	}
 
 	listen(port: string, cb: () => void) {
