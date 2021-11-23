@@ -14,6 +14,7 @@
 		"@typescript-eslint/no-unused-vars": "error",
 		"@typescript-eslint/consistent-type-definitions": ["error", "interface"],
 		"func-names": "off",
+		"no-return-await": "off",
 		"no-underscore-dangle": "off",
 		"class-methods-use-this": "off",
 		"import/extensions": [
