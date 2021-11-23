@@ -6,6 +6,9 @@ import ServerResponse from './utils/response';
 // middleware
 import errorMiddleware from './middleware/error_middleware';
 
+// models
+import('./models/connect');
+
 class App {
 	private express: Application;
 
