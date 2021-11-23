@@ -1,4 +1,7 @@
-import express, { Application } from 'express';
+import express, { Application, Request, Response } from 'express';
+
+// utils
+import ServerResponse from './utils/response';
 
 class App {
 	private express: Application;
@@ -7,6 +10,10 @@ class App {
 		this.express = express();
 		this.express.use(express.json());
 		this.express.use(express.urlencoded({ extended: true }));
+
+		this.express.use('/howfar', (req: Request, res: Response) => {
+			new ServerResponse('i dey boss').respond(res);
+		});
 	}
 
 	listen(port: string, cb: () => void) {
