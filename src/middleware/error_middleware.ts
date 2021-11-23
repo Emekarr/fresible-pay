@@ -1,12 +1,17 @@
 /* eslint-disable no-console */
-import { Response, Request } from 'express';
+import { Response, Request, NextFunction } from 'express';
 
 import CustomError from '../utils/error';
 import ServerResponse from '../utils/response';
 
 const errNames = ['CastError', 'SyntaxError'];
 
-export default (err: Error | CustomError, req: Request, res: Response) => {
+export default (
+	err: Error | CustomError,
+	req: Request,
+	res: Response,
+	next: NextFunction,
+) => {
 	console.log('AN ERROR OCCURED!');
 	console.log(`ERROR MESSAGE: ${err.message}\n ERROR_NAME: ${err.name}`);
 	console.log(err);
@@ -26,4 +31,5 @@ export default (err: Error | CustomError, req: Request, res: Response) => {
 			.statusCode(500)
 			.respond(res);
 	}
+	next();
 };
