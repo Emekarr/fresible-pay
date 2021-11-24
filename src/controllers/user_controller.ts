@@ -6,6 +6,8 @@ import { IUserDocument, User } from '../models/user';
 // services
 import QueryService from '../services/query_service';
 import UserServices from '../services/user_services';
+import OtpService from '../services/otp_services';
+import MessagingService from '../services/messaging_service';
 
 // utils
 import CustomError from '../utils/error';
@@ -65,6 +67,37 @@ class UserController {
 			new ServerResponse('Login successful')
 				.data({ user: loggedIn.user })
 				.respond(res);
+		} catch (err) {
+			next(err);
+		}
+	}
+
+	async requestPasswordResetOtp(
+		req: Request,
+		res: Response,
+		next: NextFunction,
+	) {
+		try {
+			const { email, model } = req.body;
+			QueryService.checkIfNull([email, model]);
+			const user = await UserServices.findByEmail(email);
+			if (!user) throw new CustomError('account not found', 404);
+			const otp = OtpService.generateOtp();
+			const savedOtp = await OtpService.saveOtp(otp, user._id, model as string);
+			if (!savedOtp) throw new CustomError('Failed to create new otp', 400);
+			if (process.env.NODE_ENV === 'TEST' || process.env.NODE_ENV === 'DEV') {
+				new ServerResponse('otp sent successfully').data({ otp }).respond(res);
+			} else if (process.env.NODE_ENV === 'PROD') {
+				const { success } = await MessagingService.sendEmail(
+					email as string,
+					`DO NOT SHARE THIS MESSAGE WITH ANYONE\nYour OTP is ${otp}`,
+					'Fresible Wallet Account Verification.',
+				);
+				if (!success) throw new CustomError('Failed to send otp', 400);
+				new ServerResponse('otp sent successfully').respond(res);
+			} else {
+				throw new CustomError('unknown environment running', 500);
+			}
 		} catch (err) {
 			next(err);
 		}

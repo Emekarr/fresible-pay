@@ -8,4 +8,6 @@ router.post('/signup', UserController.createUser);
 
 router.post('/login', UserController.loginUser);
 
+router.post('/password-reset-otp', UserController.requestPasswordResetOtp);
+
 export default router;

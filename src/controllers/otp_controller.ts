@@ -15,7 +15,7 @@ class OtpController {
 		try {
 			const { id } = req.query;
 			const { email, model } = req.body;
-			QueryService.checkIfNull([id, email]);
+			QueryService.checkIfNull([id, email, model]);
 			const otp = OtpService.generateOtp();
 			const savedOtp = await OtpService.saveOtp(
 				otp,
