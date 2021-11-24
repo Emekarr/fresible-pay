@@ -1,5 +1,5 @@
 import { Document, Schema, model } from 'mongoose';
-import bcrypt from 'bcrypt';
+import { compare, hash } from 'bcrypt';
 
 import CustomError from '../utils/error';
 
@@ -14,7 +14,7 @@ export interface IUser extends User {
 }
 
 export interface IUserDocument extends IUser, Document {
-	generateTokens: () => string;
+	verifyPassword: (password: string) => Promise<boolean>;
 }
 
 const userSchemaFields: Record<keyof IUser, any> = {
@@ -57,7 +57,7 @@ const UserSchema = new Schema(userSchemaFields, { timestamps: true });
 
 UserSchema.pre('save', async function (this: IUserDocument, next) {
 	if (this.isModified('password')) {
-		this.password = await bcrypt.hash(this.password!, 10);
+		this.password = await hash(this.password!, 10);
 	}
 	next();
 });
@@ -68,5 +68,12 @@ UserSchema.method('toJSON', function (this: IUserDocument) {
 	delete user.password;
 	return user;
 });
+
+UserSchema.method(
+	'verifyPassword',
+	async function (this: IUserDocument, password: string) {
+		return await compare(password, this.password!);
+	},
+);
 
 export default model<IUserDocument>('User', UserSchema);
