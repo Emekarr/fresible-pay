@@ -48,8 +48,7 @@ class UserServices {
 		try {
 			updatedUser = await this.findById(id);
 			if (!updatedUser) throw new Error('No user returned');
-			updatedUser.update(user);
-			await updatedUser.save();
+			await updatedUser.updateOne(user, { new: true });
 		} catch (err) {
 			updatedUser = null;
 		}

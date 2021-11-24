@@ -41,23 +41,30 @@ class OtpController {
 		}
 	}
 
-	async verify_otp(req: Request, res: Response, next: NextFunction) {
+	async verifyEmail(req: Request, res: Response, next: NextFunction) {
 		try {
 			const { otpCode, user } = req.body;
 			QueryService.checkIfNull([otpCode, user]);
-			const { match, otp } = await OtpService.verifyOtp(otpCode, user);
+			let account = await UserService.findById(user);
+			if (!account) throw new CustomError('user not found', 404);
+			if (account?.verified_email)
+				throw new CustomError('email already verified', 400);
+			const { match, otp } = await OtpService.verifyOtp(
+				otpCode,
+				user,
+				req.socket.remoteAddress!,
+			);
 			if (!match || !otp) throw new CustomError('otp validation failed', 400);
 			if (otp.model === 'user') {
-				const account = await UserService.findById(otp.user.toString()!!);
-				if (!account) throw new CustomError('otp validation failed', 400);
-				const updatedAccount = await UserService.updateUser(account._id!!, {
-					verified_email: false,
+				account = await UserService.updateUser(user!, {
+					verified_email: true,
 				});
-				if (!updatedAccount)
-					throw new CustomError('otp validation failed', 400);
+				if (!account) throw new CustomError('otp validation failed', 400);
 			}
 
-			new ServerResponse('Account email verified').respond(res);
+			new ServerResponse('Account email verified')
+				.data({ user: account })
+				.respond(res);
 		} catch (err) {
 			next(err);
 		}

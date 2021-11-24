@@ -2,6 +2,8 @@ import { Types } from 'mongoose';
 
 import Otp, { OTPDocument } from '../models/otp';
 
+import TokenService from './token_service';
+
 class OtpService {
 	generateOtp(): string {
 		return Math.floor(100000 + Math.random() * 899999).toString();
@@ -30,6 +32,7 @@ class OtpService {
 	async verifyOtp(
 		otp: string,
 		user: string,
+		ipAddress: string,
 	): Promise<{ match: boolean; otp: OTPDocument | null }> {
 		let data: { match: boolean; otp: OTPDocument | null };
 		try {
@@ -42,6 +45,12 @@ class OtpService {
 				otp: currentOtp,
 			};
 			await currentOtp.delete();
+			const { accessToken, refreshToken } = await TokenService.generateToken(
+				ipAddress,
+				user,
+			);
+			if (!accessToken || !refreshToken)
+				throw new Error('tokens could not be generated');
 		} catch (err) {
 			data = {
 				match: false,

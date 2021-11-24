@@ -49,7 +49,7 @@ const userSchemaFields: Record<keyof IUser, any> = {
 	},
 	verified_email: {
 		type: Boolean,
-		default: true,
+		default: false,
 	},
 };
 
