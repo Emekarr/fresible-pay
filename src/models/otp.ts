@@ -44,7 +44,7 @@ const OTPSchema = new Schema<OTPDocument>(otpSchemaFields, {
 });
 
 OTPSchema.pre('save', async function (this: OTPDocument, next) {
-	if (this.isModified('otp')) {
+	if (this.isModified('code')) {
 		this.code = await hash(this.code, 10);
 	}
 	next();

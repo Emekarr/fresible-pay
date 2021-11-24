@@ -4,6 +4,7 @@ import { Request, Response, NextFunction } from 'express';
 import OtpService from '../services/otp_services';
 import MessagingService from '../services/messaging_service';
 import QueryService from '../services/query_service';
+import UserService from '../services/user_services';
 
 // utils
 import CustomError from '../utils/error';
@@ -35,6 +36,28 @@ class OtpController {
 			} else {
 				throw new CustomError('unknown environment running', 500);
 			}
+		} catch (err) {
+			next(err);
+		}
+	}
+
+	async verify_otp(req: Request, res: Response, next: NextFunction) {
+		try {
+			const { otpCode, user } = req.body;
+			QueryService.checkIfNull([otpCode, user]);
+			const { match, otp } = await OtpService.verifyOtp(otpCode, user);
+			if (!match || !otp) throw new CustomError('otp validation failed', 400);
+			if (otp.model === 'user') {
+				const account = await UserService.findById(otp.user.toString()!!);
+				if (!account) throw new CustomError('otp validation failed', 400);
+				const updatedAccount = await UserService.updateUser(account._id!!, {
+					verified_email: false,
+				});
+				if (!updatedAccount)
+					throw new CustomError('otp validation failed', 400);
+			}
+
+			new ServerResponse('Account email verified').respond(res);
 		} catch (err) {
 			next(err);
 		}
