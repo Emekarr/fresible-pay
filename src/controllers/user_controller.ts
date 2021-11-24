@@ -86,7 +86,9 @@ class UserController {
 			const savedOtp = await OtpService.saveOtp(otp, user._id, model as string);
 			if (!savedOtp) throw new CustomError('Failed to create new otp', 400);
 			if (process.env.NODE_ENV === 'TEST' || process.env.NODE_ENV === 'DEV') {
-				new ServerResponse('otp sent successfully').data({ otp }).respond(res);
+				new ServerResponse('otp sent successfully')
+					.data({ otp, user: user._id })
+					.respond(res);
 			} else if (process.env.NODE_ENV === 'PROD') {
 				const { success } = await MessagingService.sendEmail(
 					email as string,
@@ -94,10 +96,38 @@ class UserController {
 					'Fresible Wallet Account Verification.',
 				);
 				if (!success) throw new CustomError('Failed to send otp', 400);
-				new ServerResponse('otp sent successfully').respond(res);
+				new ServerResponse('otp sent successfully')
+					.data({ user: user._id })
+					.respond(res);
 			} else {
 				throw new CustomError('unknown environment running', 500);
 			}
+		} catch (err) {
+			next(err);
+		}
+	}
+
+	async resetPassword(req: Request, res: Response, next: NextFunction) {
+		try {
+			const { otpCode, user, password } = req.body;
+			QueryService.checkIfNull([otpCode, user, password]);
+			const { match, otp } = await OtpService.verifyOtp(
+				otpCode,
+				user,
+				req.socket.remoteAddress!,
+			);
+			if (!match || !otp) throw new CustomError('otp validation failed', 400);
+			let account: IUserDocument | null;
+			if (otp.model === 'user') {
+				account = await UserServices.updateUser(user, {
+					password,
+				});
+				if (!account) throw new CustomError('error updating password', 400);
+			}
+
+			new ServerResponse('password reset successful')
+				.data({ user })
+				.respond(res);
 		} catch (err) {
 			next(err);
 		}

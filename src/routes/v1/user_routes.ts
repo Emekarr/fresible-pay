@@ -10,4 +10,6 @@ router.post('/login', UserController.loginUser);
 
 router.post('/password-reset-otp', UserController.requestPasswordResetOtp);
 
+router.patch('/reset-password', UserController.resetPassword);
+
 export default router;
