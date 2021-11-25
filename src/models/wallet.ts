@@ -1,11 +1,16 @@
 import { Schema, Types, model, Document } from 'mongoose';
 
+import WalletTypes from '../utils/wallet_types';
+
+import CustomError from '../utils/error';
+
 export interface Wallet {
 	owner: Types.ObjectId;
 }
 
 export interface IWallet extends Wallet {
 	tokens: string[];
+	type: string;
 }
 
 export interface IWalletDocument extends Wallet, Document {}
@@ -16,6 +21,14 @@ const walletSchemaFields: Record<keyof IWallet, any> = {
 		required: true,
 		unique: true,
 		ref: 'User',
+	},
+	type: {
+		type: String,
+		default: WalletTypes.NORMAL,
+		validate(data: string) {
+			if (data !== WalletTypes.NORMAL)
+				throw new CustomError('invalid wallet type selected', 400);
+		},
 	},
 	tokens: [
 		{
