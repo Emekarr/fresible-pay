@@ -1333,9 +1333,9 @@ flatted@^3.1.0:
   resolved "https://registry.npmjs.org/flatted/-/flatted-3.2.4.tgz"
   integrity sha512-8/sOawo8tJ4QOBX8YlQBMxL8+RLZfxMQOif9o0KUKTNTjMYElWPE0r/m5VNFxTRd0NSw8qSy8dajrwX4RYI1Hw==
 
-flutterwave-node-v3@^1.0.8:
+flutterwave-node-v3@^1.0.9:
   version "1.0.9"
-  resolved "https://registry.npmjs.org/flutterwave-node-v3/-/flutterwave-node-v3-1.0.9.tgz"
+  resolved "https://registry.yarnpkg.com/flutterwave-node-v3/-/flutterwave-node-v3-1.0.9.tgz#0f1a279872cb45334fb2b4f5b9b031e18f79f9be"
   integrity sha512-IA8Y8qx9ybNjMUp8oBTXCudSGpJVg/eWpWo4q1SQVI7VsuOMFfAwUS58CsVD+0wGna/svDlDNCgJKk6pD5D1Ew==
   dependencies:
     axios "^0.21.4"
