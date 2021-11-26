@@ -6,6 +6,7 @@ import MessagingService from '../services/messaging_service';
 import QueryService from '../services/query_service';
 import UserService from '../services/user_services';
 import WalletService from '../services/wallet_service';
+import RedisService from '../services/redis_service';
 
 // utils
 import CustomError from '../utils/error';
@@ -64,7 +65,7 @@ class OtpController {
 				const wallet = await WalletService.createWallet(account._id);
 				if (!wallet) throw new CustomError('wallet creation failed', 400);
 			}
-
+			RedisService.updateTotalUserCount();
 			new ServerResponse('Account email verified')
 				.data({ user: account })
 				.respond(res);

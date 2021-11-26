@@ -32,11 +32,22 @@ class RedisService {
 	async getCachedCurrentBalance(id: string): Promise<string | null> {
 		let balance!: string | null;
 		try {
-			balance = await this.redis.get(`${id}-current-balance`);
+			balance = await this.redis.GET(`${id}-current-balance`);
 		} catch (err) {
 			balance = null;
 		}
 		return balance;
+	}
+
+	async updateTotalUserCount(): Promise<boolean> {
+		let success!: boolean;
+		try {
+			await this.redis.INCR('total-user-count');
+			success = true;
+		} catch (err) {
+			success = false;
+		}
+		return success;
 	}
 }
 
