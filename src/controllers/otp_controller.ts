@@ -59,6 +59,7 @@ class OtpController {
 					verified_email: true,
 				});
 				if (!account) throw new CustomError('otp validation failed', 400);
+				account.verified_email = true;
 				const wallet = await WalletService.createWallet(account._id);
 				if (!wallet) throw new CustomError('wallet creation failed', 400);
 			}
