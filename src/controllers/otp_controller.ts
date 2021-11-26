@@ -51,11 +51,8 @@ class OtpController {
 			if (!account) throw new CustomError('user not found', 404);
 			if (account?.verified_email)
 				throw new CustomError('email already verified', 400);
-			const { match, otp } = await OtpService.verifyOtp(
-				otpCode,
-				user,
-				req.socket.remoteAddress!,
-			);
+			const { match, otp, accessToken, refreshToken } =
+				await OtpService.verifyOtp(otpCode, user, req.socket.remoteAddress!);
 			if (!match || !otp) throw new CustomError('otp validation failed', 400);
 			if (otp.model === 'user') {
 				account = await UserService.updateUser(user!, {
@@ -66,6 +63,14 @@ class OtpController {
 				if (!wallet) throw new CustomError('wallet creation failed', 400);
 			}
 			await RedisService.updateTotalUserCount();
+			res.cookie('ACCESS_TOKEN', accessToken, {
+				httpOnly: true,
+				maxAge: 14400,
+			});
+			res.cookie('REFRESH_TOKEN', refreshToken, {
+				httpOnly: true,
+				maxAge: 7884008,
+			});
 			new ServerResponse('Account email verified')
 				.data({ user: account })
 				.respond(res);

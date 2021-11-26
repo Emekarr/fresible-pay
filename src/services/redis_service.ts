@@ -1,5 +1,8 @@
 import { createClient } from 'redis';
 
+import RefreshToken from '../models/tokens/refresh_tokens';
+import AccessToken from '../models/tokens/access_tokens';
+
 class RedisService {
 	private redis;
 
@@ -12,6 +15,38 @@ class RedisService {
 	connectToRedis(): RedisService {
 		(async () => await this.redis.connect())();
 		return this;
+	}
+
+	async cacheRefreshTokens(id: string, token: RefreshToken): Promise<boolean> {
+		let success;
+		try {
+			const count = await this.redis.SCARD(`${id}-refresh-tokens`);
+			if (count >= 10) {
+				const allTokens = await this.redis.SMEMBERS(`${id}-refresh-tokens`);
+				await this.redis.SREM(`${id}-refresh-tokens`, allTokens[0]);
+			}
+			await this.redis.SADD(`${id}-refresh-tokens`, JSON.stringify(token));
+			success = true;
+		} catch (err) {
+			success = false;
+		}
+		return success;
+	}
+
+	async cacheAccessTokens(id: string, token: AccessToken): Promise<boolean> {
+		let success;
+		try {
+			const count = await this.redis.SCARD(`${id}-access-tokens`);
+			if (count >= 10) {
+				const allTokens = await this.redis.SMEMBERS(`${id}-access-tokens`);
+				await this.redis.SREM(`${id}-access-tokens`, allTokens[0]);
+			}
+			await this.redis.SADD(`${id}-access-tokens`, JSON.stringify(token));
+			success = true;
+		} catch (err) {
+			success = false;
+		}
+		return success;
 	}
 
 	async cacheCurrentBalance(id: string, balance: string): Promise<boolean> {

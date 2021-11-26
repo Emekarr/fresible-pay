@@ -81,16 +81,14 @@ class UserServices {
 			if (!user) throw new Error('user not found');
 			const matches = await user.verifyPassword(password);
 			if (!matches) throw new Error('password does not match');
-			const { accessToken, refreshToken } = await TokenService.generateToken(
-				ipAddress,
-				user._id,
-			);
-			if (!accessToken || !refreshToken)
+			const { newAccessToken, newRefreshToken } =
+				await TokenService.generateToken(ipAddress, user._id);
+			if (!newAccessToken || !newRefreshToken)
 				throw new Error('tokens could not be generated');
 			data = {
 				loggedIn: true,
-				accessToken,
-				refreshToken,
+				accessToken: newAccessToken.token,
+				refreshToken: newRefreshToken.token,
 				user,
 			};
 		} catch (err) {

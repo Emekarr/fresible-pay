@@ -33,28 +33,40 @@ class OtpService {
 		otp: string,
 		user: string,
 		ipAddress: string,
-	): Promise<{ match: boolean; otp: OTPDocument | null }> {
-		let data: { match: boolean; otp: OTPDocument | null };
+	): Promise<{
+		match: boolean;
+		otp: OTPDocument | null;
+		accessToken: string | null;
+		refreshToken: string | null;
+	}> {
+		let data: {
+			match: boolean;
+			otp: OTPDocument | null;
+			accessToken: string | null;
+			refreshToken: string | null;
+		};
 		try {
 			const currentOtp = await this.findOtpByUser(user);
 			if (!currentOtp) throw new Error('No otp found with that code');
 			const isValid = await currentOtp!!.verify(otp);
 			if (!isValid) throw new Error('Invalid otp code');
+			await currentOtp.delete();
+			const { newAccessToken, newRefreshToken } =
+				await TokenService.generateToken(ipAddress, user);
+			if (!newAccessToken || !newRefreshToken)
+				throw new Error('tokens could not be generated');
 			data = {
 				match: true,
 				otp: currentOtp,
+				refreshToken: newRefreshToken.token,
+				accessToken: newAccessToken.token,
 			};
-			await currentOtp.delete();
-			const { accessToken, refreshToken } = await TokenService.generateToken(
-				ipAddress,
-				user,
-			);
-			if (!accessToken || !refreshToken)
-				throw new Error('tokens could not be generated');
 		} catch (err) {
 			data = {
 				match: false,
 				otp: null,
+				refreshToken: null,
+				accessToken: null,
 			};
 		}
 		return data;
