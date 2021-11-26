@@ -3,6 +3,7 @@ import express, { Application, Request, Response } from 'express';
 // utils
 import ServerResponse from './utils/response';
 
+import redisService from './services/redis_service';
 // middleware
 import errorMiddleware from './middleware/error_middleware';
 
@@ -17,7 +18,7 @@ class App {
 
 	constructor() {
 		this.express = express();
-		
+		(async () => await redisService.retrieveTotalTransactionVolume())();
 		this.express.use(express.json());
 		this.express.use(express.urlencoded({ extended: true }));
 

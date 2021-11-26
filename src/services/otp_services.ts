@@ -24,6 +24,7 @@ class OtpService {
 				model,
 			}).save();
 		} catch (err) {
+			console.log(err);
 			newOtp = null;
 		}
 		return newOtp;

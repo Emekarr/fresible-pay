@@ -60,6 +60,22 @@ class RedisService {
 		}
 		return success;
 	}
+
+	async retrieveTotalTransactionVolume(): Promise<number> {
+		let count: number = 0;
+		try {
+			// eslint-disable-next-line no-restricted-syntax
+			for await (const key of this.redis.scanIterator({
+				MATCH: '*-current-balance',
+				TYPE: 'string',
+			})) {
+				count += parseInt((await this.redis.get(key))!, 10);
+			}
+		} catch (err) {
+			count = 0;
+		}
+		return count;
+	}
 }
 
 export default new RedisService().connectToRedis();
