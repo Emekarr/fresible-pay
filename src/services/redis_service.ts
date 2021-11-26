@@ -61,7 +61,7 @@ class RedisService {
 		return success;
 	}
 
-	async retrieveTotalTransactionVolume(): Promise<number> {
+	async retrieveTotalWalletBalance(): Promise<number> {
 		let count: number = 0;
 		try {
 			// eslint-disable-next-line no-restricted-syntax
