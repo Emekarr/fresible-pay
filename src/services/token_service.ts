@@ -21,9 +21,13 @@ class TokenService {
 		);
 		const newAccessToken = new AccessToken(
 			newRefreshToken.token,
-			sign({ id }, process.env.JWT_REFRESH_KEY!, {
-				expiresIn: '730h',
-			}),
+			sign(
+				{ id, refreshToken: newRefreshToken.token },
+				process.env.JWT_ACCESS_KEY!,
+				{
+					expiresIn: '730h',
+				},
+			),
 			ipAddress,
 			Date.now(),
 			new Types.ObjectId(id),

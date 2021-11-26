@@ -13,11 +13,11 @@ import RedisService from '../services/redis_service';
 
 export default async (req: Request, res: Response, next: NextFunction) => {
 	try {
-		const authTokenHeader = req.headers.authorizationauthtoken as string;
+		const accessTokenHeader = req.headers.authorizationaccesstoken as string;
 		const refreshTokenHeader = req.headers.authorizationrefreshtoken as string;
 		if (
-			!authTokenHeader ||
-			authTokenHeader === ' ' ||
+			!accessTokenHeader ||
+			accessTokenHeader === ' ' ||
 			!refreshTokenHeader ||
 			refreshTokenHeader === ' '
 		)
@@ -52,24 +52,30 @@ export default async (req: Request, res: Response, next: NextFunction) => {
 				.respond(res);
 
 		let authDecoded: JwtPayload | undefined;
-		jwt.verify(authTokenHeader, process.env.JWT_AUTH_KEY!, (err, decoded) => {
-			if (err) {
-				if (err.name === 'TokenExpiredError') {
-					return new ServerResponse('Auth token expired. Please sign in again.')
-						.statusCode(400)
-						.success(false)
-						.respond(res);
+		jwt.verify(
+			accessTokenHeader,
+			process.env.JWT_ACCESS_KEY!,
+			(err, decoded) => {
+				if (err) {
+					if (err.name === 'TokenExpiredError') {
+						return new ServerResponse(
+							'Auth token expired. Please sign in again.',
+						)
+							.statusCode(400)
+							.success(false)
+							.respond(res);
+					}
 				}
-			}
-			authDecoded = decoded;
-		});
+				authDecoded = decoded;
+			},
+		);
 
 		if (!authDecoded)
 			return new ServerResponse('Auth token expired. Please sign in again.')
 				.statusCode(400)
 				.success(false)
-				.respond(res);
-
+                .respond(res);
+        
 		if (authDecoded.refreshToken !== refreshTokenHeader)
 			return new ServerResponse('Invalid tokens used.')
 				.statusCode(400)
@@ -100,7 +106,7 @@ export default async (req: Request, res: Response, next: NextFunction) => {
 
 		const accessToken = await RedisService.getAccessTokens(
 			authDecoded.id,
-			authTokenHeader,
+			accessTokenHeader,
 		);
 		if (!accessToken)
 			return new ServerResponse('Expired auth token used.')

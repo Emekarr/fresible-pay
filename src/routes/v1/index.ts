@@ -6,13 +6,14 @@ import OtpRoute from './otp_routes';
 
 import WalletRoute from './wallet_routes';
 
+import authMiddleware from '../../middleware/auth_middleware';
+
 const router = Router();
 
 router.use('/user', UserRoutes);
 
 router.use('/otp', OtpRoute);
 
-router.use('/wallet', WalletRoute);
-
+router.use('/wallet', authMiddleware, WalletRoute);
 
 export default router;
