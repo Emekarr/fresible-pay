@@ -103,6 +103,22 @@ class UserServices {
 		}
 		return data;
 	}
+
+	async getAllUsers(limit?: string, page?: string): Promise<IUserDocument[]> {
+		let user!: IUserDocument[];
+		try {
+			if (limit && page) {
+				user = await UserModel.find()
+					.limit(Number(limit))
+					.skip((Number(page) - 1) * Number(limit));
+			} else {
+				user = await UserModel.find();
+			}
+		} catch (err) {
+			user = [];
+		}
+		return user;
+	}
 }
 
 export default new UserServices();

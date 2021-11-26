@@ -132,6 +132,21 @@ class UserController {
 			next(err);
 		}
 	}
+
+	async getAllUsers(req: Request, res: Response, next: NextFunction) {
+		try {
+			const { limit, page } = req.query;
+			const users = await UserServices.getAllUsers(
+				limit as string,
+				page as string,
+			);
+			new ServerResponse('users retrieved and returned')
+				.data(users)
+				.respond(res);
+		} catch (err) {
+			next(err);
+		}
+	}
 }
 
 export default new UserController();
