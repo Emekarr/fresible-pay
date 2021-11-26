@@ -3,7 +3,6 @@ import express, { Application, Request, Response } from 'express';
 // utils
 import ServerResponse from './utils/response';
 
-import redisService from './services/redis_service';
 // middleware
 import errorMiddleware from './middleware/error_middleware';
 
