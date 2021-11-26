@@ -49,6 +49,17 @@ class RedisService {
 		}
 		return success;
 	}
+
+	async updateTotalTransactionCount(): Promise<boolean> {
+		let success!: boolean;
+		try {
+			await this.redis.INCR('total-transaction-count');
+			success = true;
+		} catch (err) {
+			success = false;
+		}
+		return success;
+	}
 }
 
 export default new RedisService().connectToRedis();

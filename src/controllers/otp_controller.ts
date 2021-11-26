@@ -65,7 +65,7 @@ class OtpController {
 				const wallet = await WalletService.createWallet(account._id);
 				if (!wallet) throw new CustomError('wallet creation failed', 400);
 			}
-			RedisService.updateTotalUserCount();
+			await RedisService.updateTotalUserCount();
 			new ServerResponse('Account email verified')
 				.data({ user: account })
 				.respond(res);

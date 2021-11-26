@@ -110,6 +110,7 @@ export default class CreateTransaction {
 
 		const transaction = await new Transaction(payload).save();
 		if (!transaction) return false;
+		await RedisService.updateTotalTransactionCount();
 		const success = await RedisService.cacheCurrentBalance(
 			recieverId,
 			currentBalance.toString(),
