@@ -24,10 +24,7 @@ class WalletController {
 			QueryService.checkIfNull([details]);
 			const txRef = generateTransactionId();
 			const cardDetails = { ...details, txRef };
-			/*
-				NOTE HARDCODED CODE
-			*/
-			const user = await UserService.findById('61a0690abeacebc6a2f40e31');
+			const user = await UserService.findById(req.id);
 			if (!user) throw new CustomError('user not found', 404);
 			cardDetails.email = user.email;
 			const flwRef = await FlutterwaveService.chargeCard(cardDetails);
@@ -55,12 +52,7 @@ class WalletController {
 
 			if (response.status !== 'success')
 				throw new CustomError('validation failed', 400);
-			/*
-				NOTE HARDCODED CODE
-			*/
-			const wallet = await WalletService.findWalletById(
-				'61a06912beacebc6a2f40e40',
-			);
+			const wallet = await WalletService.findWalletByOwner(req.id);
 			if (!wallet) throw new CustomError('wallet was not found', 404);
 
 			const createTransaction = new CreateTransaction(
@@ -71,14 +63,7 @@ class WalletController {
 				response.paymentType,
 			);
 
-			/*
-				NOTE HARDCODED CODE
-			*/
-			const result = await createTransaction.transact(
-				'61a06912beacebc6a2f40e40',
-				null,
-				true,
-			);
+			const result = await createTransaction.transact(wallet._id, null, true);
 			if (!result)
 				throw new CustomError(
 					`Transactions failed to create for\nWALLET: X\nFLWREF ${flwRef}`,
@@ -108,15 +93,10 @@ class WalletController {
 			const { recieverName, amount, description } = req.body;
 			QueryService.checkIfNull([recieverName, amount, description]);
 			const transactionId = uuidv1();
-			/*
-				NOTE HARDCODED CODE
-			*/
-			const sender = await UserService.findById('61a0690abeacebc6a2f40e31');
+			const sender = await UserService.findById(req.id);
 			if (!sender)
 				throw new CustomError('Transaction failed. Sender not found', 404);
-			const senderWallet = await WalletService.findWalletById(
-				'61a06912beacebc6a2f40e40',
-			);
+			const senderWallet = await WalletService.findWalletByOwner(req.id);
 			if (!senderWallet)
 				throw new CustomError(
 					'Transaction failed. Sender wallet not found',
@@ -126,7 +106,7 @@ class WalletController {
 			if (!reciever)
 				throw new CustomError('Transaction failed. Reciever not found', 404);
 			const recieverWallet = await WalletService.findWalletByOwner(
-				'61a069bbfc261a2bea95056d',
+				reciever._id,
 			);
 			if (!recieverWallet)
 				throw new CustomError(

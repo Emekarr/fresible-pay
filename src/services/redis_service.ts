@@ -17,6 +17,73 @@ class RedisService {
 		return this;
 	}
 
+	async getRefreshToken(
+		id: string,
+		refreshToken: string,
+	): Promise<RefreshToken | null> {
+		let token: RefreshToken | null;
+		try {
+			const tokens = await this.redis.SMEMBERS(`${id}-refresh-tokens`);
+			token = JSON.parse(
+				tokens.find((tk) => {
+					const tkObject: RefreshToken = JSON.parse(tk);
+					return tkObject.token === refreshToken;
+				})!,
+			);
+		} catch (err) {
+			token = null;
+		}
+		return token;
+	}
+
+	async getAccessTokens(
+		id: string,
+		refreshToken: string,
+	): Promise<AccessToken | null> {
+		let token: AccessToken | null;
+		try {
+			const tokens = await this.redis.SMEMBERS(`${id}-access-tokens`);
+			token = JSON.parse(
+				tokens.find((tk) => {
+					const tkObject: AccessToken = JSON.parse(tk);
+					return tkObject.token === refreshToken;
+				})!,
+			);
+		} catch (err) {
+			token = null;
+		}
+		return token;
+	}
+
+	async deleteAccessToken(
+		id: string,
+		accessToken: AccessToken,
+	): Promise<boolean> {
+		let success!: boolean;
+		try {
+			await this.redis.SREM(`${id}-access-tokens`, JSON.stringify(accessToken));
+		} catch (err) {
+			success = false;
+		}
+		return success;
+	}
+
+	async deleteRefreshToken(
+		id: string,
+		refreshToken: RefreshToken,
+	): Promise<boolean> {
+		let success!: boolean;
+		try {
+			await this.redis.SREM(
+				`${id}-refresh-tokens`,
+				JSON.stringify(refreshToken),
+			);
+		} catch (err) {
+			success = false;
+		}
+		return success;
+	}
+
 	async cacheRefreshTokens(id: string, token: RefreshToken): Promise<boolean> {
 		let success;
 		try {
