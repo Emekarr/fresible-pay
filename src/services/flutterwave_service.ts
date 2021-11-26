@@ -7,7 +7,7 @@ class FlutterwaveService {
 		this.flw = new Flutterwave(process.env.FLW_PUB, process.env.FLW_SEC);
 	}
 
-	async chargeCar({
+	async chargeCard({
 		cardNumber,
 		cvv,
 		expiryMonth,
@@ -55,7 +55,8 @@ class FlutterwaveService {
 				const reCallCharge = await this.flw.Charge.card(payload2);
 				flwRef = reCallCharge.data.flw_ref;
 			}
-		} catch (error) {
+		} catch (err) {
+			console.log(err)
 			flwRef = null;
 		}
 		return flwRef;
