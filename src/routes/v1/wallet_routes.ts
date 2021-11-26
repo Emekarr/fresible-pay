@@ -10,4 +10,6 @@ router.post('/validate-charge', WalletController.validateCard);
 
 router.post('/transfer', WalletController.transferCash);
 
+router.get('/all', WalletController.getAllWallets);
+
 export default router;

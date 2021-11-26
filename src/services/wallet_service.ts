@@ -30,6 +30,25 @@ class WalletService {
 		}
 		return wallet;
 	}
+
+	async getAllWallets(
+		limit?: string,
+		page?: string,
+	): Promise<IWalletDocument[]> {
+		let wallets!: IWalletDocument[];
+		try {
+			if (limit && page) {
+				wallets = await Wallet.find()
+					.limit(Number(limit))
+					.skip((Number(page) - 1) * Number(limit));
+			} else {
+				wallets = await Wallet.find();
+			}
+		} catch (err) {
+			wallets = [];
+		}
+		return wallets;
+	}
 }
 
 export default new WalletService();

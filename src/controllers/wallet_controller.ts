@@ -158,6 +158,21 @@ class WalletController {
 			next(err);
 		}
 	}
+
+	async getAllWallets(req: Request, res: Response, next: NextFunction) {
+		try {
+			const { limit, page } = req.query;
+			const wallets = await WalletService.getAllWallets(
+				limit as string,
+				page as string,
+			);
+			new ServerResponse('wallets retrieved and returned')
+				.data(wallets)
+				.respond(res);
+		} catch (err) {
+			next(err);
+		}
+	}
 }
 
 export default new WalletController();
