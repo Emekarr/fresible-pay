@@ -14,4 +14,6 @@ router.patch('/reset-password', UserController.resetPassword);
 
 router.get('/all', UserController.getAllUsers);
 
+router.get('/profile', UserController.getUserDetails);
+
 export default router;

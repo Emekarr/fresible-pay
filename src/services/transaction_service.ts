@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 
-import Transaction from '../models/transaction';
+import Transaction, { ITransactionDocument } from '../models/transaction';
 import CustomError from '../utils/error';
 import TransactionTypes from '../utils/transaction_types';
 
@@ -8,6 +8,26 @@ import RedisService from './redis_service';
 
 export const generateTransactionId = (): string =>
 	new Types.ObjectId().toString();
+
+export const getAllTransactions = async (
+	walletId: string,
+	limit?: string,
+	page?: string,
+) => {
+	let transactions: ITransactionDocument[];
+	try {
+		if (limit && page) {
+			transactions = await Transaction.find({ owner: walletId })
+				.limit(Number(limit))
+				.skip((Number(page) - 1) * Number(limit));
+		} else {
+			transactions = await Transaction.find({ owner: walletId });
+		}
+	} catch (err) {
+		transactions = [];
+	}
+	return transactions;
+};
 
 export default class CreateTransaction {
 	private payload;

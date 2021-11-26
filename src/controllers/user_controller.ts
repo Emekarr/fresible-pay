@@ -8,6 +8,8 @@ import QueryService from '../services/query_service';
 import UserServices from '../services/user_services';
 import OtpService from '../services/otp_services';
 import MessagingService from '../services/messaging_service';
+import WalletService from '../services/wallet_service';
+import { getAllTransactions } from '../services/transaction_service';
 
 // utils
 import CustomError from '../utils/error';
@@ -142,6 +144,26 @@ class UserController {
 			);
 			new ServerResponse('users retrieved and returned')
 				.data(users)
+				.respond(res);
+		} catch (err) {
+			next(err);
+		}
+	}
+
+	async getUserDetails(req: Request, res: Response, next: NextFunction) {
+		try {
+			const { userId, limit, page } = req.query;
+			QueryService.checkIfNull([userId]);
+			const user = await UserServices.findById(userId as string);
+			if (!user) throw new CustomError('User profile not found', 404);
+			const wallet = await WalletService.findWalletByOwner(userId as string);
+			const transactions = await getAllTransactions(
+				wallet?._id,
+				limit as string,
+				page as string,
+			);
+			new ServerResponse('users retrieved and returned')
+				.data({ user, wallet, transactions })
 				.respond(res);
 		} catch (err) {
 			next(err);
