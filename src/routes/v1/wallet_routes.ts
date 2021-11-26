@@ -8,4 +8,6 @@ router.post('/charge-card', WalletController.chargeCard);
 
 router.post('/validate-charge', WalletController.validateCard);
 
+router.post('/transfer', WalletController.transferCash);
+
 export default router;

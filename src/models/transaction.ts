@@ -41,7 +41,6 @@ const transactionModelFields: Record<keyof Transaction, any> = {
 	transactionId: {
 		type: String,
 		required: true,
-		unique: true,
 	},
 	action: {
 		type: String,

@@ -20,6 +20,16 @@ class WalletService {
 		}
 		return wallet;
 	}
+
+	async findWalletByOwner(ownerId: string): Promise<IWalletDocument | null> {
+		let wallet!: IWalletDocument | null;
+		try {
+			wallet = await Wallet.findOne({ owner: ownerId });
+		} catch (err) {
+			wallet = null;
+		}
+		return wallet;
+	}
 }
 
 export default new WalletService();

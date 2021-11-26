@@ -1,12 +1,19 @@
+import { Types } from 'mongoose';
+
 import Transaction from '../models/transaction';
 import CustomError from '../utils/error';
 import TransactionTypes from '../utils/transaction_types';
+
+import RedisService from './redis_service';
+
+export const generateTransactionId = (): string =>
+	new Types.ObjectId().toString();
 
 export default class CreateTransaction {
 	private payload;
 
 	constructor(
-		txRef: string,
+		txRef: string | null,
 		flwRef: string,
 		description: string,
 		amount: number,
@@ -44,46 +51,59 @@ export default class CreateTransaction {
 	}
 
 	async send(senderId: string, recieverId: string, id?: string) {
-		const currentBalance = await this.currentBalance(senderId);
+		let currentBalance = await this.currentBalance(senderId);
 		if (currentBalance < this.payload.amount)
 			throw new CustomError('Insufficient funds.', 400);
+		currentBalance -= this.payload.amount;
 		if (id) this.payload._id = id;
 		const payload = {
 			...this.payload,
 			owner: senderId,
 			sentTo: recieverId,
 			action: TransactionTypes.DEBIT,
-			currentBalance: currentBalance - this.payload.amount,
+			currentBalance,
 		};
-
 		const transaction = await new Transaction(payload).save();
 		if (!transaction) return false;
+		const success = await RedisService.cacheCurrentBalance(
+			senderId,
+			currentBalance.toString(),
+		);
+		if (!success)
+			throw new Error(
+				`falied to cache recievers current balance transactionid ${this.payload.transactionId}`,
+			);
 		return true;
 	}
 
 	async recieve(recieverId: string, senderId: string, id?: string) {
-		const currentBalance = await this.currentBalance(recieverId);
+		let currentBalance = await this.currentBalance(recieverId);
+		currentBalance += this.payload.amount;
 		if (id) this.payload = { ...this.payload, _id: id };
 		const payload = {
 			...this.payload,
 			owner: recieverId,
 			sentFrom: senderId,
 			action: TransactionTypes.CREDIT,
-			currentBalance: currentBalance + this.payload.amount,
+			currentBalance,
 		};
 
 		const transaction = await new Transaction(payload).save();
 		if (!transaction) return false;
+		const success = await RedisService.cacheCurrentBalance(
+			recieverId,
+			currentBalance.toString(),
+		);
+		if (!success)
+			throw new Error(
+				`falied to cache recievers current balance transactionid ${this.payload.transactionId}`,
+			);
 		return true;
 	}
 
 	async currentBalance(id: string): Promise<number> {
-		const lastTransaction = await Transaction.findOne(
-			{ owner: id },
-			{},
-			{ sort: { created_at: 1 } },
-		);
-		if (!lastTransaction) return 0;
-		return lastTransaction.currentBalance;
+		const currentBalance = await RedisService.getCachedCurrentBalance(id);
+		if (!currentBalance) return 0;
+		return Number(currentBalance!);
 	}
 }
