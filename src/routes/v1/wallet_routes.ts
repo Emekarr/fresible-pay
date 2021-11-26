@@ -12,4 +12,6 @@ router.post('/transfer', WalletController.transferCash);
 
 router.get('/all', WalletController.getAllWallets);
 
+router.get('/details', WalletController.getWalletDetails);
+
 export default router;

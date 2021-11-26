@@ -1,3 +1,4 @@
+/* eslint-disable consistent-return */
 import { Request, Response, NextFunction } from 'express';
 import { v1 as uuidv1 } from 'uuid';
 
@@ -8,6 +9,7 @@ import QueryService from '../services/query_service';
 import WalletService from '../services/wallet_service';
 import CreateTransaction, {
 	generateTransactionId,
+	getAllTransactions,
 } from '../services/transaction_service';
 
 // utils
@@ -168,6 +170,30 @@ class WalletController {
 			);
 			new ServerResponse('wallets retrieved and returned')
 				.data(wallets)
+				.respond(res);
+		} catch (err) {
+			next(err);
+		}
+	}
+
+	async getWalletDetails(req: Request, res: Response, next: NextFunction) {
+		try {
+			const { walletId, limit, page } = req.query;
+			QueryService.checkIfNull([walletId]);
+			const wallet = await WalletService.findWalletById(walletId as string);
+			if (!wallet)
+				return new ServerResponse('wallet not found')
+					.success(false)
+					.statusCode(404)
+					.respond(res);
+			const user = await UserService.findById(wallet.owner.toString());
+			const transactions = await getAllTransactions(
+				wallet?._id,
+				limit as string,
+				page as string,
+			);
+			new ServerResponse('wallet retrieved and returned')
+				.data({ wallet, user, transactions })
 				.respond(res);
 		} catch (err) {
 			next(err);
