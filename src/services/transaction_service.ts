@@ -14,10 +14,10 @@ export default class CreateTransaction {
 	) {
 		this.payload = {
 			_id: txRef,
-			transaction_id: flwRef,
+			transactionId: flwRef,
 			description: !description ? '' : description,
 			amount,
-			payment_type: paymentType,
+			paymentType,
 		};
 	}
 
@@ -51,9 +51,9 @@ export default class CreateTransaction {
 		const payload = {
 			...this.payload,
 			owner: senderId,
-			sent_to: recieverId,
+			sentTo: recieverId,
 			action: TransactionTypes.DEBIT,
-			current_balance: currentBalance - this.payload.amount,
+			currentBalance: currentBalance - this.payload.amount,
 		};
 
 		const transaction = await new Transaction(payload).save();
@@ -63,13 +63,13 @@ export default class CreateTransaction {
 
 	async recieve(recieverId: string, senderId: string, id?: string) {
 		const currentBalance = await this.currentBalance(recieverId);
-		if (id) this.payload._id = id;
+		if (id) this.payload = { ...this.payload, _id: id };
 		const payload = {
 			...this.payload,
 			owner: recieverId,
-			sent_from: senderId,
+			sentFrom: senderId,
 			action: TransactionTypes.CREDIT,
-			current_balance: currentBalance + this.payload.amount,
+			currentBalance: currentBalance + this.payload.amount,
 		};
 
 		const transaction = await new Transaction(payload).save();

@@ -97,11 +97,11 @@ TransactionSchema.method('toJSON', function () {
 	return transaction;
 });
 
-TransactionSchema.pre('save', function (exit) {
-	if (!this.sent_from && !this.sent_to) {
+TransactionSchema.pre('save', function (this: ITransactionDocument, next) {
+	if (!this.sentFrom && !this.sentTo) {
 		throw new CustomError('Set a value for either sent_from or sent_to', 400);
 	}
-	exit();
+	next();
 });
 
 export default model<ITransactionDocument>('Transaction', TransactionSchema);

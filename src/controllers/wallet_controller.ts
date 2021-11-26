@@ -66,7 +66,20 @@ class WalletController {
 				response.amount,
 				response.paymentType,
 			);
-			await createTransaction.transact(wallet._id, null, true);
+
+			/*
+				NOTE HARDCODED CODE
+			*/
+			const result = await createTransaction.transact(
+				'61a05554485acb918ac67fe5',
+				null,
+				true,
+			);
+			if (!result)
+				throw new CustomError(
+					`Transactions failed to create for\nWALLET: X\nFLWREF ${flwRef}`,
+					500,
+				);
 
 			if (save) {
 				const transactionToken = await FlutterwaveService.verifyTransaction(
