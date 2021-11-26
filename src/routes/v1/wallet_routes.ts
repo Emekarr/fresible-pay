@@ -6,4 +6,6 @@ const router = Router();
 
 router.post('/charge-card', WalletController.chargeCard);
 
+router.post('/validate-charge', WalletController.validateCard);
+
 export default router;

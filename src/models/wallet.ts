@@ -9,11 +9,11 @@ export interface Wallet {
 }
 
 export interface IWallet extends Wallet {
-	tokens: string[];
+	tokens: { token: string }[];
 	type: string;
 }
 
-export interface IWalletDocument extends Wallet, Document {}
+export interface IWalletDocument extends IWallet, Document {}
 
 const walletSchemaFields: Record<keyof IWallet, any> = {
 	owner: {

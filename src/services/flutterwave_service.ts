@@ -56,7 +56,6 @@ class FlutterwaveService {
 				flwRef = reCallCharge.data.flw_ref;
 			}
 		} catch (err) {
-			console.log(err)
 			flwRef = null;
 		}
 		return flwRef;
@@ -68,29 +67,46 @@ class FlutterwaveService {
 		flwRef: string,
 	): Promise<{
 		status: string;
-		amount: string;
+		amount: number;
 		paymentType: string;
 		txRef: string;
 		id: string;
-	}> {
-		const callValidate = await this.flw.Charge.validate({
-			otp,
-			flw_ref: flwRef,
-		});
-		return {
-			status: callValidate.status,
-			amount: callValidate.data.amount,
-			paymentType: callValidate.data.payment_type,
-			txRef: callValidate.data.tx_ref,
-			id: callValidate.data.id,
-		};
+	} | null> {
+		let data!: {
+			status: string;
+			amount: number;
+			paymentType: string;
+			txRef: string;
+			id: string;
+		} | null;
+		try {
+			const callValidate = await this.flw.Charge.validate({
+				otp,
+				flw_ref: flwRef,
+			});
+			data = {
+				status: callValidate.status,
+				amount: callValidate.data.amount,
+				paymentType: callValidate.data.payment_type,
+				txRef: callValidate.data.tx_ref,
+				id: callValidate.data.id,
+			};
+		} catch (err) {
+			data = null;
+		}
+		return data;
 	}
 
-	async verifyTransaction(id: string): Promise<{ transactionToken: string }> {
-		const payload = { id };
-		const response = await this.flw.Transaction.verify(payload);
-		const transactionToken = response.data.card.token;
-		return { transactionToken };
+	async verifyTransaction(id: string): Promise<string | null> {
+		let transactionToken: string | null;
+		try {
+			const payload = { id };
+			const response = await this.flw.Transaction.verify(payload);
+			transactionToken = response.data.card.token;
+		} catch (err) {
+			transactionToken = null;
+		}
+		return transactionToken;
 	}
 
 	async token_charge(
@@ -99,7 +115,8 @@ class FlutterwaveService {
 		token: string,
 		email: string,
 		txRef: string,
-	): Promise<{ flwRef: string; status: string; paymentType: string }> {
+	): Promise<{ flwRef: string; status: string; paymentType: string } | null> {
+		let data!: { flwRef: string; status: string; paymentType: string } | null;
 		const payload = {
 			amount,
 			narration,
@@ -109,12 +126,17 @@ class FlutterwaveService {
 			email,
 			txRef,
 		};
-		const response = await this.flw.Tokenized.charge(payload);
-		return {
-			flwRef: response.data.flw_ref,
-			status: response.status,
-			paymentType: response.data.payment_type,
-		};
+		try {
+			const response = await this.flw.Tokenized.charge(payload);
+			data = {
+				flwRef: response.data.flw_ref,
+				status: response.status,
+				paymentType: response.data.payment_type,
+			};
+		} catch (err) {
+			data = null;
+		}
+		return data;
 	}
 }
 

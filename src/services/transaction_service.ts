@@ -22,19 +22,19 @@ export default class CreateTransaction {
 	}
 
 	async transact(
-		senderId: string,
-		recieverId: string,
-		topup: string,
-		id1: string,
-		id2: string,
+		senderId: string | null,
+		recieverId: string | null,
+		topup: boolean,
+		id1?: string,
+		id2?: string,
 	): Promise<boolean> {
 		let result: boolean;
 		try {
 			if (topup) {
-				result = await this.recieve(senderId, senderId);
+				result = await this.recieve(senderId!, senderId!);
 			} else {
-				const send = await this.send(senderId, recieverId, id1);
-				if (send) await this.recieve(recieverId, senderId, id2);
+				const send = await this.send(senderId!, recieverId!, id1);
+				if (send) await this.recieve(recieverId!, senderId!, id2);
 				result = true;
 			}
 		} catch (err) {
