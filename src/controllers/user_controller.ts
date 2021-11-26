@@ -10,6 +10,7 @@ import OtpService from '../services/otp_services';
 import MessagingService from '../services/messaging_service';
 import WalletService from '../services/wallet_service';
 import { getAllTransactions } from '../services/transaction_service';
+import RedisService from '../services/redis_service';
 
 // utils
 import CustomError from '../utils/error';
@@ -164,6 +165,23 @@ class UserController {
 			);
 			new ServerResponse('users retrieved and returned')
 				.data({ user, wallet, transactions })
+				.respond(res);
+		} catch (err) {
+			next(err);
+		}
+	}
+
+	async retrievePlatformData(req: Request, res: Response, next: NextFunction) {
+		try {
+			const users = await RedisService.retrieveTotalUserCount();
+			const wallets = users;
+			const totalWalletBalance =
+				await RedisService.retrieveTotalWalletBalance();
+			const totalTransactionCount =
+				await RedisService.retrieveTotalTransactionCount();
+
+			new ServerResponse('Platform data retrieved')
+				.data({ users, wallets, totalTransactionCount, totalWalletBalance })
 				.respond(res);
 		} catch (err) {
 			next(err);

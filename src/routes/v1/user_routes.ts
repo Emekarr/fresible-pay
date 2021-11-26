@@ -16,4 +16,6 @@ router.get('/all', UserController.getAllUsers);
 
 router.get('/profile', UserController.getUserDetails);
 
+router.get('/platform-data', UserController.retrievePlatformData);
+
 export default router;

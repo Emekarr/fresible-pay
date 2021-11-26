@@ -50,6 +50,18 @@ class RedisService {
 		return success;
 	}
 
+	async retrieveTotalUserCount(): Promise<number> {
+		let users!: number;
+		try {
+			const data = await this.redis.GET('total-user-count');
+			if (!data) throw new Error();
+			users = parseInt(data!, 10);
+		} catch (err) {
+			users = 0;
+		}
+		return users;
+	}
+
 	async updateTotalTransactionCount(): Promise<boolean> {
 		let success!: boolean;
 		try {
@@ -59,6 +71,18 @@ class RedisService {
 			success = false;
 		}
 		return success;
+	}
+
+	async retrieveTotalTransactionCount(): Promise<number> {
+		let count!: number | null;
+		try {
+			const data = await this.redis.GET('total-transaction-count');
+			if (!data) throw new Error();
+			count = parseInt(data!, 10);
+		} catch (err) {
+			count = 0;
+		}
+		return count;
 	}
 
 	async retrieveTotalWalletBalance(): Promise<number> {
