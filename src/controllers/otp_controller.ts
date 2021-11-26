@@ -5,6 +5,7 @@ import OtpService from '../services/otp_services';
 import MessagingService from '../services/messaging_service';
 import QueryService from '../services/query_service';
 import UserService from '../services/user_services';
+import WalletService from '../services/wallet_service';
 
 // utils
 import CustomError from '../utils/error';
@@ -60,6 +61,8 @@ class OtpController {
 					verified_email: true,
 				});
 				if (!account) throw new CustomError('otp validation failed', 400);
+				const wallet = await WalletService.createWallet(account._id);
+				if (!wallet) throw new CustomError('wallet creation failed', 400);
 			}
 
 			new ServerResponse('Account email verified')

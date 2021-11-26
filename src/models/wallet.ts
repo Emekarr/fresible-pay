@@ -55,4 +55,4 @@ WalletSchema.methods.toJSON = function () {
 	return wallet;
 };
 
-export default model('Wallet', WalletSchema);
+export default model<IWalletDocument>('Wallet', WalletSchema);
