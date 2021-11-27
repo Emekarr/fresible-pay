@@ -7,7 +7,7 @@ class RedisService {
 	private redis;
 
 	constructor() {
-		this.redis = createClient();
+		this.redis = createClient({ url: process.env.REDIS_URL as string });
 		// eslint-disable-next-line no-console
 		this.redis.on('error', (err) => console.log('Redis Client Error', err));
 	}
