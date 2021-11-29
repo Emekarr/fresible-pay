@@ -96,6 +96,8 @@ class WalletController {
 			const sender = await UserService.findById(req.id);
 			if (!sender)
 				throw new CustomError('Transaction failed. Sender not found', 404);
+			if (sender.username === recieverName)
+				throw new CustomError('cannot foward money to yourself', 400);
 			const senderWallet = await WalletService.findWalletByOwner(req.id);
 			if (!senderWallet)
 				throw new CustomError(
