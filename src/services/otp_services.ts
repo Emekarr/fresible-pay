@@ -1,28 +1,19 @@
-import { Types } from 'mongoose';
+import { hash } from 'bcrypt';
 
-import Otp, { OTPDocument } from '../models/otp';
-
-import TokenService from './token_service';
+// models
+import Otp, { verify } from '../models/otp';
+import RedisService from './redis_service';
 
 class OtpService {
 	generateOtp(): string {
 		return Math.floor(100000 + Math.random() * 899999).toString();
 	}
 
-	async saveOtp(
-		code: string,
-		id: string,
-		model: string,
-	): Promise<OTPDocument | null> {
-		let newOtp!: OTPDocument | null;
+	async saveOtp(code: string, id: string): Promise<Otp | null> {
+		let newOtp!: Otp | null;
 		try {
-			await Otp.findOneAndDelete({ user: id });
-			newOtp = await new Otp({
-				code,
-				user: id,
-				createdAt: Date.now(),
-				model,
-			}).save();
+			const hashedCode = await hash(code, 10);
+			newOtp = new Otp(hashedCode, id);
 		} catch (err) {
 			newOtp = null;
 		}
@@ -32,50 +23,32 @@ class OtpService {
 	async verifyOtp(
 		otp: string,
 		user: string,
-		ipAddress: string,
 	): Promise<{
 		match: boolean;
-		otp: OTPDocument | null;
-		accessToken: string | null;
-		refreshToken: string | null;
 	}> {
 		let data: {
 			match: boolean;
-			otp: OTPDocument | null;
-			accessToken: string | null;
-			refreshToken: string | null;
 		};
 		try {
 			const currentOtp = await this.findOtpByUser(user);
 			if (!currentOtp) throw new Error('No otp found with that code');
-			const isValid = await currentOtp!!.verify(otp);
+			const isValid = await verify(otp, currentOtp.code);
 			if (!isValid) throw new Error('Invalid otp code');
-			await currentOtp.delete();
-			const { newAccessToken, newRefreshToken } =
-				await TokenService.generateToken(ipAddress, user);
-			if (!newAccessToken || !newRefreshToken)
-				throw new Error('tokens could not be generated');
 			data = {
 				match: true,
-				otp: currentOtp,
-				refreshToken: newRefreshToken.token,
-				accessToken: newAccessToken.token,
 			};
 		} catch (err) {
 			data = {
 				match: false,
-				otp: null,
-				refreshToken: null,
-				accessToken: null,
 			};
 		}
 		return data;
 	}
 
-	async findOtpByUser(user: string): Promise<OTPDocument | null> {
-		let otp!: OTPDocument | null;
+	async findOtpByUser(user: string): Promise<Otp | null> {
+		let otp!: Otp | null;
 		try {
-			otp = await Otp.findOne({ user: new Types.ObjectId(user) });
+			otp = await RedisService.getOtp(user);
 		} catch (err) {
 			otp = null;
 		}

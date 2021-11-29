@@ -4,9 +4,10 @@ import { Request, Response, NextFunction } from 'express';
 import OtpService from '../services/otp_services';
 import MessagingService from '../services/messaging_service';
 import QueryService from '../services/query_service';
-import UserService from '../services/user_services';
 import WalletService from '../services/wallet_service';
 import RedisService from '../services/redis_service';
+import UserServices from '../services/user_services';
+import TokenService from '../services/token_service';
 
 // utils
 import CustomError from '../utils/error';
@@ -18,13 +19,13 @@ class OtpController {
 			const { id } = req.query;
 			const { email, model } = req.body;
 			QueryService.checkIfNull([id, email, model]);
+			const user = await RedisService.getUser(id as string);
+			if (!user) throw new CustomError('user does not exist', 404);
 			const otp = OtpService.generateOtp();
-			const savedOtp = await OtpService.saveOtp(
-				otp,
-				id as string,
-				model as string,
-			);
-			if (!savedOtp) throw new CustomError('Failed to create new otp', 400);
+			const newOtp = await OtpService.saveOtp(otp, id as string);
+			if (!newOtp) throw new CustomError('Failed to create new otp', 400);
+			const isSaved = await RedisService.cacheOtp(newOtp);
+			if (!isSaved) return;
 			if (process.env.NODE_ENV === 'TEST' || process.env.NODE_ENV === 'DEV') {
 				new ServerResponse('otp sent successfully').data({ otp }).respond(res);
 			} else if (process.env.NODE_ENV === 'PROD') {
@@ -45,38 +46,40 @@ class OtpController {
 
 	async verifyEmail(req: Request, res: Response, next: NextFunction) {
 		try {
-			const { otpCode, user } = req.body;
-			QueryService.checkIfNull([otpCode, user]);
-			let account = await UserService.findById(user);
-			if (!account) throw new CustomError('user not found', 404);
-			if (account?.verified_email)
-				throw new CustomError('email already verified', 400);
-			const { match, otp, accessToken, refreshToken } =
-				await OtpService.verifyOtp(otpCode, user, req.socket.remoteAddress!);
-			if (!match || !otp) throw new CustomError('otp validation failed', 400);
-			if (otp.model === 'user') {
-				account = await UserService.updateUser(user!, {
-					verified_email: true,
-				});
-				if (!account) throw new CustomError('otp validation failed', 400);
-				account.verified_email = true;
-				const wallet = await WalletService.createWallet(account._id);
-				if (!wallet) throw new CustomError('wallet creation failed', 400);
-			} else {
-				throw new CustomError('otp validation failed', 400);
+			const { otpCode, userId } = req.body;
+			QueryService.checkIfNull([otpCode, userId]);
+			const { match } = await OtpService.verifyOtp(otpCode, userId);
+			if (!match) throw new CustomError('otp validation failed', 400);
+			const userDetails = await RedisService.getUser(userId);
+			if (!userDetails) {
+				new ServerResponse('User not found')
+					.success(false)
+					.statusCode(404)
+					.respond(res);
+				return;
 			}
+			const user = await UserServices.createUser(userDetails);
+			if (!user) throw new CustomError('user creation failed', 400);
+			UserServices.updateUser(user._id, {
+				verified_email: true,
+			});
+			user.verified_email = true;
+			const { newAccessToken, newRefreshToken } =
+				await TokenService.generateToken(req.socket.remoteAddress!, user._id);
+			if (!newAccessToken || !newRefreshToken)
+				throw new Error('tokens could not be generated');
+			const wallet = await WalletService.createWallet(user._id);
+			if (!wallet) throw new CustomError('wallet creation failed', 400);
 			await RedisService.updateTotalUserCount();
-			res.cookie('ACCESS_TOKEN', accessToken, {
+			res.cookie('ACCESS_TOKEN', newAccessToken, {
 				httpOnly: true,
-				maxAge: 14400,
+				maxAge: parseInt(process.env.ACCESS_TOKEN_LIFE as string, 10),
 			});
-			res.cookie('REFRESH_TOKEN', refreshToken, {
+			res.cookie('REFRESH_TOKEN', newRefreshToken, {
 				httpOnly: true,
-				maxAge: 7884008,
+				maxAge: parseInt(process.env.REFRESH_TOKEN_LIFE as string, 10),
 			});
-			new ServerResponse('Account email verified')
-				.data({ user: account })
-				.respond(res);
+			new ServerResponse('Account email verified').data({ user }).respond(res);
 		} catch (err) {
 			next(err);
 		}

@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { v4 } from 'uuid';
 
 // models
 import { IUserDocument, User } from '../models/user';
@@ -11,6 +12,7 @@ import MessagingService from '../services/messaging_service';
 import WalletService from '../services/wallet_service';
 import { getAllTransactions } from '../services/transaction_service';
 import RedisService from '../services/redis_service';
+import TokenService from '../services/token_service';
 
 // utils
 import CustomError from '../utils/error';
@@ -21,9 +23,13 @@ class UserController {
 		try {
 			const userDetails: User = req.body;
 			QueryService.checkIfNull([userDetails]);
-			const user = await UserServices.createUser(userDetails);
-			if (!user) throw new CustomError('failed to create new user', 400);
-			new ServerResponse('User created successfully').data(user).respond(res);
+			const tempId = v4();
+			const success = await RedisService.cacheUser(userDetails, tempId);
+			if (!success)
+				throw new CustomError('something went wrong while saving user', 400);
+			new ServerResponse('User created successfully')
+				.data({ tempId })
+				.respond(res);
 		} catch (err) {
 			next(err);
 		}
@@ -86,8 +92,10 @@ class UserController {
 			const user = await UserServices.findByEmail(email);
 			if (!user) throw new CustomError('account not found', 404);
 			const otp = OtpService.generateOtp();
-			const savedOtp = await OtpService.saveOtp(otp, user._id, model as string);
-			if (!savedOtp) throw new CustomError('Failed to create new otp', 400);
+			const newOtp = await OtpService.saveOtp(otp, user._id);
+			if (!newOtp) throw new CustomError('Failed to create new otp', 400);
+			const isSaved = await RedisService.cacheOtp(newOtp);
+			if (!isSaved) return;
 			if (process.env.NODE_ENV === 'TEST' || process.env.NODE_ENV === 'DEV') {
 				new ServerResponse('otp sent successfully')
 					.data({ otp, user: user._id })
@@ -114,19 +122,24 @@ class UserController {
 		try {
 			const { otpCode, user, password } = req.body;
 			QueryService.checkIfNull([otpCode, user, password]);
-			const { match, otp } = await OtpService.verifyOtp(
-				otpCode,
-				user,
-				req.socket.remoteAddress!,
-			);
-			if (!match || !otp) throw new CustomError('otp validation failed', 400);
-			let account: IUserDocument | null;
-			if (otp.model === 'user') {
-				account = await UserServices.updateUser(user, {
-					password,
-				});
-				if (!account) throw new CustomError('error updating password', 400);
-			}
+			const { match } = await OtpService.verifyOtp(otpCode, user);
+			if (!match) throw new CustomError('otp validation failed', 400);
+			const account = await UserServices.updateUser(user, {
+				password,
+			});
+			if (!account) throw new CustomError('error updating password', 400);
+			const { newAccessToken, newRefreshToken } =
+				await TokenService.generateToken(req.socket.remoteAddress!, user._id);
+			if (!newAccessToken || !newRefreshToken)
+				throw new Error('tokens could not be generated');
+			res.cookie('ACCESS_TOKEN', newAccessToken, {
+				httpOnly: true,
+				maxAge: parseInt(process.env.ACCESS_TOKEN_LIFE as string, 10),
+			});
+			res.cookie('REFRESH_TOKEN', newRefreshToken, {
+				httpOnly: true,
+				maxAge: parseInt(process.env.REFRESH_TOKEN_LIFE as string, 10),
+			});
 
 			new ServerResponse('password reset successful')
 				.data({ user })

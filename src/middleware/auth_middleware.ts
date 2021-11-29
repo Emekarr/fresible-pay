@@ -83,7 +83,7 @@ export default async (req: Request, res: Response, next: NextFunction) => {
 
 			res.cookie('ACCESS_TOKEN', accessToken, {
 				httpOnly: true,
-				maxAge: 14400,
+				maxAge: parseInt(process.env.ACCESS_TOKEN_LIFE as string, 10),
 			});
 			return next();
 		}

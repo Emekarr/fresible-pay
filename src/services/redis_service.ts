@@ -2,6 +2,8 @@ import { createClient } from 'redis';
 
 import RefreshToken from '../models/tokens/refresh_tokens';
 import AccessToken from '../models/tokens/access_tokens';
+import { User } from '../models/user';
+import Otp from '../models/otp';
 
 class RedisService {
 	private redis;
@@ -15,6 +17,62 @@ class RedisService {
 	connectToRedis(): RedisService {
 		(async () => await this.redis.connect())();
 		return this;
+	}
+
+	async cacheOtp(otp: Otp): Promise<boolean> {
+		let success!: boolean;
+		try {
+			const result = await this.redis.SET(`${otp.id}-otp`, JSON.stringify(otp));
+			if (result === 'OK') {
+				success = true;
+				this.redis.EXPIRE(`${otp.id}-user`, 300);
+			} else {
+				success = false;
+			}
+		} catch (err) {
+			success = false;
+		}
+		return success;
+	}
+
+	async getOtp(id: string): Promise<Otp | null> {
+		let otp!: Otp | null;
+		try {
+			const data = await this.redis.GET(`${id}-otp`);
+			if (!data) return null;
+			otp = JSON.parse(data);
+		} catch (err) {
+			otp = null;
+		}
+		return otp;
+	}
+
+	async cacheUser(user: User, id: string): Promise<boolean> {
+		let success!: boolean;
+		try {
+			const result = await this.redis.SET(`${id}-user`, JSON.stringify(user));
+			if (result === 'OK') {
+				success = true;
+				this.redis.EXPIRE(`${id}-user`, 300);
+			} else {
+				success = false;
+			}
+		} catch (err) {
+			success = false;
+		}
+		return success;
+	}
+
+	async getUser(id: string): Promise<User | null> {
+		let user!: User | null;
+		try {
+			const data = await this.redis.GET(`${id}-user`);
+			if (!data) return null;
+			user = JSON.parse(data);
+		} catch (err) {
+			user = null;
+		}
+		return user;
 	}
 
 	async getRefreshToken(
