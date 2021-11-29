@@ -6,7 +6,7 @@ export default class AccessToken {
 		readonly refreshToken: string,
 		readonly token: string,
 		readonly ipAddress: string,
-		readonly createdAt: number,
+		readonly deleteAt: Date,
 		readonly owner: Types.ObjectId,
 	) {
 		//

@@ -5,128 +5,118 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 // utils
 import ServerResponse from '../utils/response';
 
-// models
-import User from '../models/user';
-
 // services
 import RedisService from '../services/redis_service';
+import TokenService from '../services/token_service';
+
+const generateFromRefresh = async (
+	refreshToken: string,
+	ipAddress: string,
+): Promise<string | void> => {
+	let refreshDecoded: JwtPayload | undefined;
+	jwt.verify(refreshToken, process.env.JWT_REFRESH_KEY!, (err, decoded) => {
+		refreshDecoded = decoded;
+	});
+
+	if (!refreshDecoded) return;
+
+	const accessTokenFromCache = await RedisService.getAccessTokens(
+		refreshDecoded.id,
+		refreshToken,
+	);
+
+	if (!accessTokenFromCache) return;
+
+	await RedisService.deleteAccessToken(
+		refreshDecoded.id,
+		accessTokenFromCache!,
+	);
+
+	const { token } = await TokenService.generateAccessToken(
+		ipAddress,
+		refreshDecoded!.id,
+		refreshToken,
+	);
+
+	return token;
+};
 
 export default async (req: Request, res: Response, next: NextFunction) => {
 	try {
 		const accessTokenHeader = req.headers.authorizationaccesstoken as string;
 		const refreshTokenHeader = req.headers.authorizationrefreshtoken as string;
-		if (
-			!accessTokenHeader ||
-			accessTokenHeader === ' ' ||
-			!refreshTokenHeader ||
-			refreshTokenHeader === ' '
-		)
+		if (!refreshTokenHeader || refreshTokenHeader === ' ')
 			return new ServerResponse('Tokens not provided')
 				.statusCode(400)
 				.success(false)
 				.respond(res);
 
-		let refreshDecoded: JwtPayload | undefined;
-		jwt.verify(
-			refreshTokenHeader,
-			process.env.JWT_REFRESH_KEY!,
-			(err, decoded) => {
-				if (err) {
-					if (err.name === 'TokenExpiredError') {
-						return new ServerResponse(
-							'Refresh token expired. Please sign in again.',
-						)
-							.statusCode(400)
-							.success(false)
-							.respond(res);
-					}
-				}
-				refreshDecoded = decoded;
-			},
-		);
-
-		if (!refreshDecoded)
-			return new ServerResponse('Refresh token expired. Please sign in again.')
-				.statusCode(400)
-				.success(false)
-				.respond(res);
-
-		let authDecoded: JwtPayload | undefined;
-		jwt.verify(
+		let accessDecoded: JwtPayload | undefined;
+		let accessToken!: string | void;
+		let tokenErr!: any;
+		await jwt.verify(
 			accessTokenHeader,
 			process.env.JWT_ACCESS_KEY!,
-			(err, decoded) => {
+			async (err, decoded) => {
 				if (err) {
+					tokenErr = err;
 					if (err.name === 'TokenExpiredError') {
-						return new ServerResponse(
-							'Auth token expired. Please sign in again.',
-						)
-							.statusCode(400)
-							.success(false)
-							.respond(res);
+						accessToken = await generateFromRefresh(
+							refreshTokenHeader,
+							req.socket.remoteAddress!,
+						);
 					}
 				}
-				authDecoded = decoded;
+				accessDecoded = decoded;
 			},
 		);
 
-		if (!authDecoded)
-			return new ServerResponse('Auth token expired. Please sign in again.')
-				.statusCode(400)
-				.success(false)
-                .respond(res);
-        
-		if (authDecoded.refreshToken !== refreshTokenHeader)
-			return new ServerResponse('Invalid tokens used.')
-				.statusCode(400)
-				.success(false)
-				.respond(res);
-		if (refreshDecoded.id !== authDecoded.id)
-			return new ServerResponse('Invalid tokens used.')
+		if (tokenErr) {
+			if (!accessToken) {
+				return new ServerResponse(
+					'Could not generate auth token. Please sign in again.',
+				)
+					.statusCode(400)
+					.success(false)
+					.respond(res);
+			}
+
+			res.cookie('ACCESS_TOKEN', accessToken, {
+				httpOnly: true,
+				maxAge: 14400,
+			});
+			return next();
+		}
+
+		if (!accessDecoded)
+			return new ServerResponse(
+				'Auth token not provided. Please sign in again.',
+			)
 				.statusCode(400)
 				.success(false)
 				.respond(res);
 
-		const user = await User.findById(refreshDecoded.id);
-		if (!user)
-			return new ServerResponse('No user was found.')
-				.statusCode(400)
-				.success(false)
-				.respond(res);
-
-		const refreshToken = await RedisService.getRefreshToken(
-			authDecoded.id,
+		const accessTokenFromCache = await RedisService.getAccessTokens(
+			accessDecoded.id,
 			refreshTokenHeader,
 		);
-		if (!refreshToken)
-			return new ServerResponse('Expired refresh token used.')
+
+		if (!accessTokenFromCache)
+			return new ServerResponse('Invalid token used')
 				.statusCode(400)
-				.success(false)
 				.respond(res);
 
-		const accessToken = await RedisService.getAccessTokens(
-			authDecoded.id,
-			accessTokenHeader,
-		);
-		if (!accessToken)
-			return new ServerResponse('Expired auth token used.')
-				.statusCode(400)
-				.success(false)
-				.respond(res);
-
-		const ipAddress = req.socket.remoteAddress!;
-		if (
-			ipAddress !== accessToken.ipAddress ||
-			ipAddress !== refreshToken.ipAddress
-		) {
-			await RedisService.deleteAccessToken(authDecoded.id, accessToken);
-			await RedisService.deleteRefreshToken(authDecoded.id, refreshToken);
+		if (req.socket.remoteAddress! !== accessTokenFromCache!.ipAddress) {
+			await RedisService.deleteAccessToken(
+				accessDecoded.id,
+				accessTokenFromCache,
+			);
 			return new ServerResponse('token used from unrecognised device.')
 				.statusCode(400)
 				.success(false)
 				.respond(res);
 		}
-		req.id = user._id;
+		req.id = accessDecoded.id;
 		next();
 	} catch (err) {
 		next(err);

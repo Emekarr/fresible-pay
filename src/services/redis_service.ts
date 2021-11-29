@@ -46,7 +46,7 @@ class RedisService {
 			token = JSON.parse(
 				tokens.find((tk) => {
 					const tkObject: AccessToken = JSON.parse(tk);
-					return tkObject.token === refreshToken;
+					return tkObject.refreshToken === refreshToken;
 				})!,
 			);
 		} catch (err) {

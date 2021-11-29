@@ -62,6 +62,8 @@ class OtpController {
 				account.verified_email = true;
 				const wallet = await WalletService.createWallet(account._id);
 				if (!wallet) throw new CustomError('wallet creation failed', 400);
+			} else {
+				throw new CustomError('otp validation failed', 400);
 			}
 			await RedisService.updateTotalUserCount();
 			res.cookie('ACCESS_TOKEN', accessToken, {
