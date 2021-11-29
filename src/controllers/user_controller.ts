@@ -67,11 +67,11 @@ class UserController {
 
 			res.cookie('ACCESS_TOKEN', loggedIn.accessToken, {
 				httpOnly: true,
-				maxAge: 14400,
+				maxAge: parseInt(process.env.ACCESS_TOKEN_LIFE as string, 10),
 			});
 			res.cookie('REFRESH_TOKEN', loggedIn.refreshToken, {
 				httpOnly: true,
-				maxAge: 7884008,
+				maxAge: parseInt(process.env.REFRESH_TOKEN_LIFE as string, 10),
 			});
 			new ServerResponse('Login successful')
 				.data({ user: loggedIn.user })
@@ -87,8 +87,8 @@ class UserController {
 		next: NextFunction,
 	) {
 		try {
-			const { email, model } = req.body;
-			QueryService.checkIfNull([email, model]);
+			const { email } = req.body;
+			QueryService.checkIfNull([email]);
 			const user = await UserServices.findByEmail(email);
 			if (!user) throw new CustomError('account not found', 404);
 			const otp = OtpService.generateOtp();
@@ -142,7 +142,7 @@ class UserController {
 			});
 
 			new ServerResponse('password reset successful')
-				.data({ user })
+				.data({ account })
 				.respond(res);
 		} catch (err) {
 			next(err);

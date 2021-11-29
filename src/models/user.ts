@@ -62,6 +62,7 @@ UserSchema.pre('save', async function (this: IUserDocument, next) {
 	next();
 });
 
+
 UserSchema.method('toJSON', function (this: IUserDocument) {
 	const user = this.toObject();
 	delete user.__v;

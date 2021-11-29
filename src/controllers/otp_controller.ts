@@ -71,11 +71,11 @@ class OtpController {
 			const wallet = await WalletService.createWallet(user._id);
 			if (!wallet) throw new CustomError('wallet creation failed', 400);
 			await RedisService.updateTotalUserCount();
-			res.cookie('ACCESS_TOKEN', newAccessToken, {
+			res.cookie('ACCESS_TOKEN', newAccessToken.token, {
 				httpOnly: true,
 				maxAge: parseInt(process.env.ACCESS_TOKEN_LIFE as string, 10),
 			});
-			res.cookie('REFRESH_TOKEN', newRefreshToken, {
+			res.cookie('REFRESH_TOKEN', newRefreshToken.token, {
 				httpOnly: true,
 				maxAge: parseInt(process.env.REFRESH_TOKEN_LIFE as string, 10),
 			});
